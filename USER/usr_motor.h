@@ -4,7 +4,7 @@
 #define SPEED_NUM  (80)          //速度档位数 10
 #define MIN_CCR    (250-1)       //PWM 最小CCR  对应25% 占空比
 #define MAX_CCR    (1000-1)      //PWM 最大CCR  对应100% 占空比
-#define SAMPLE_TIME   (50)       // ms ADC采样时间
+#define SAMPLE_TIME   (5)       // ms ADC采样时间
 
 
 typedef enum
@@ -50,6 +50,7 @@ u8  motor_get_speed(MOTOR_CHN_E chn );
 void motor_self_check(void);
 int  motor_control_proc(void);
 void motor_ccr_proc(void);
+void motor_ccr_proc_chn5_6(void);
 u16  motor_get_adc_average(MOTOR_CHN_E chn);
 int proc_motor(u16 adc_value);
 int get_m_state(void);

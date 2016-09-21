@@ -259,7 +259,8 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
 	/* In order to detect unexpected events during development,
 	 it is recommended to set a breakpoint on the following instruction.
 	*/
-  	simulate_uart_rxtx_proc();
+  	//simulate_uart_rxtx_proc();
+	motor_ccr_proc_chn5_6();
 	TIM5_ClearITPendingBit(TIM5_IT_UPDATE);
  }
  

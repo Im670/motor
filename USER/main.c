@@ -89,7 +89,7 @@ main()
 	//motor_self_check();
 
 	
-	for(i = TEST_CHN; i< TEST_CHN+1;i++)
+	for(i = MOTOR_CHN1; i< MOTOR_CHN_NUM;i++)
 	{
 		motor_set_speed((MOTOR_CHN_E)i,SET_SPEED);
 	}
@@ -113,7 +113,7 @@ main()
 			gFinish = 0;
 		}
         
-        
+ #if 0       
 		for(i = TEST_CHN; i< TEST_CHN+1;i++)
 		{
 			/*if(i == MOTOR_CHN2)
@@ -147,6 +147,7 @@ main()
 			
 			//delay_ms(100);
 		}
+#endif
 
 /*---------------------------
 检测堵转调速代码
@@ -203,6 +204,7 @@ main()
 用于测试
 ----------------------------*/
 #ifdef _TEST_NORMAL_ADD_SPEED_
+#if 0
 	    if(++cnt == 500/SAMPLE_TIME)     // 2 秒一次
 		{
 		    cnt = 0;
@@ -225,6 +227,61 @@ main()
 				}	
 			}	
 		}
+#endif
+		
+		for(i = MOTOR_CHN1; i< MOTOR_CHN_NUM; i++)
+		{
+			adc_average = motor_get_adc_average((MOTOR_CHN_E)i);
+			cur_speed = motor_get_speed((MOTOR_CHN_E)i);
+			
+			usart1_printf("----------------%d通道AD值为:%d-----------------\n",i,adc_average );
+
+			if(cur_speed < 15)
+			{
+				if(adc_average > (10+(4*cur_speed)))
+				{
+					cur_speed ++;
+					//cur_speed = cur_speed +2;
+				}  
+				else if (adc_average<(10+(3*cur_speed)))
+				{				
+					cur_speed --;					
+				}
+			}
+			else if ((cur_speed >= 15)&&( cur_speed < 45))
+			{
+				if(adc_average >(10+(5*cur_speed)))
+				{	
+					cur_speed ++;
+					//cur_speed = cur_speed +2;
+				}  
+				else if (adc_average < (10 + (4*cur_speed)))
+				{
+					cur_speed --;
+					
+				}	
+			}
+			else if (cur_speed >= 45)
+			{
+				if(adc_average > (10+(6*cur_speed)))
+				{
+					cur_speed ++;
+					//cur_speed[i]=cur_speed[i]+2;
+				}  
+				else if (adc_average < (10+(5*cur_speed)))
+				{
+					cur_speed --;					
+				}	
+			}	
+			
+			if(cur_speed < 1)
+			{
+				cur_speed =1;
+			}
+			usart1_printf("-----------------------%dch switch to speed %d--------------\n",i,(u16)cur_speed );
+			motor_set_speed((MOTOR_CHN_E)i,cur_speed);
+		//	motor_set_speed(2,cur_speed[i]);
+		} 
 #endif
 		
 			

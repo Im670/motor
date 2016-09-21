@@ -96,7 +96,7 @@ void pwm_init(void)
 	TIM1_Cmd(ENABLE);	
     /* TIM1 Main Output Enable */
     TIM1_CtrlPWMOutputs(ENABLE);
-#if 0
+
 	/*Y5 Y6*/
 	TIM5_DeInit();
 	TIM5_TimeBaseInit(TIM5_PRESCALER_16, MAX_CCR);
@@ -107,7 +107,7 @@ void pwm_init(void)
 
 	TIM5_ITConfig(TIM5_IT_UPDATE,ENABLE);	
 	TIM5_Cmd(ENABLE); 
-#endif    
+   
 	/**/
 	
 }
@@ -155,8 +155,9 @@ int motor_set_speed(MOTOR_CHN_E chn ,u8 speed)
 	}	
 	
 	m_motor_config.motor[chn].cur_speed = speed;
-
+#if 0
 	motor_set_cur_ccr(chn,CCR_table[speed]);
+#endif
 	return 0;
 }
 
@@ -178,7 +179,7 @@ void motor_ccr_proc(void)
 		return;
 	}
 		
-	for(chn = 0 ; chn < MOTOR_CHN_NUM;chn++)
+	for(chn = MOTOR_CHN1 ; chn < MOTOR_CHN5 ; chn++)
 	{
 		int speed = m_motor_config.motor[chn].cur_speed;
 		
@@ -186,37 +187,75 @@ void motor_ccr_proc(void)
 		{
 			case MOTOR_CHN1:
 				{
-					TIM1_SetCompare1(m_motor_config.motor[chn].cur_ccr);
+					TIM1_SetCompare1(CCR_table[speed]);
+					//TIM1_SetCompare1(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN2:
 				{
-					TIM1_SetCompare2(m_motor_config.motor[chn].cur_ccr);
+					TIM1_SetCompare2(CCR_table[speed]);
+					//TIM1_SetCompare2(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN3:
 				{
-					TIM1_SetCompare3(m_motor_config.motor[chn].cur_ccr);
+					TIM1_SetCompare3(CCR_table[speed]);
+					//TIM1_SetCompare3(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN4:
 				{
-					TIM1_SetCompare4(m_motor_config.motor[chn].cur_ccr);
+					TIM1_SetCompare4(CCR_table[speed]);
+					//TIM1_SetCompare4(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN5:
 				{
+					//TIM5_SetCompare1(CCR_table[speed]);
 					//TIM5_SetCompare1(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN6:
 				{
+					//TIM5_SetCompare2(CCR_table[speed]);
 					//TIM5_SetCompare2(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 		}
 	}
 }
+
+void motor_ccr_proc_chn5_6(void)
+{
+	int chn = 0;
+
+	if(!m_motor_config.init_finished)
+	{
+		return;
+	}
+		
+	for(chn = MOTOR_CHN5 ; chn < MOTOR_CHN_NUM;chn++)
+	{
+		int speed = m_motor_config.motor[chn].cur_speed;
+		
+		switch(chn)
+		{			
+			case MOTOR_CHN5:
+				{
+					TIM5_SetCompare1(CCR_table[speed]);
+					//TIM5_SetCompare1(m_motor_config.motor[chn].cur_ccr);
+				}
+				break;
+			case MOTOR_CHN6:
+				{
+					TIM5_SetCompare2(CCR_table[speed]);
+					//TIM5_SetCompare2(m_motor_config.motor[chn].cur_ccr);
+				}
+				break;
+		}
+	}
+}
+
 
 int motor_control_proc()
 {
@@ -484,8 +523,10 @@ void set_m_state(M_STEAE state)
 	m_ctrl.dec_cnt= 0;
 	m_ctrl.waite_time = 0;
 }
+
 int motor_is_stucked(void)
 {
 	return (m_ctrl.m_state == M_STUCK);
 }
+
 
