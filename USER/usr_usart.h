@@ -8,7 +8,7 @@ void show_buffer(int len, u8* buffer);
 
 //#define PRINTF_ON
 
-#define USART1_PRINTF_ON  1
+#define USART1_PRINTF_ON 0
 
 #ifdef PRINTF_ON
 #include <stdio.h>

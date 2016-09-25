@@ -102,8 +102,8 @@ void pwm_init(void)
 	TIM5_TimeBaseInit(TIM5_PRESCALER_16, MAX_CCR);
 	//TIM5_ITConfig(TIM5_IT_UPDATE,ENABLE);
 	
-	TIM5_OC1Init(TIM5_OCMODE_PWM1, TIM5_OUTPUTSTATE_ENABLE, 600-1, TIM5_OCPOLARITY_LOW); 
-	TIM5_OC2Init(TIM5_OCMODE_PWM1, TIM5_OUTPUTSTATE_ENABLE, 600-1, TIM5_OCPOLARITY_LOW); 
+	TIM5_OC1Init(TIM5_OCMODE_PWM1, TIM5_OUTPUTSTATE_ENABLE, 0, TIM5_OCPOLARITY_LOW); 
+	TIM5_OC2Init(TIM5_OCMODE_PWM1, TIM5_OUTPUTSTATE_ENABLE, 0, TIM5_OCPOLARITY_LOW); 
 
 	TIM5_ITConfig(TIM5_IT_UPDATE,ENABLE);	
 	TIM5_Cmd(ENABLE); 
@@ -155,9 +155,9 @@ int motor_set_speed(MOTOR_CHN_E chn ,u8 speed)
 	}	
 	
 	m_motor_config.motor[chn].cur_speed = speed;
-#if 0
+
 	motor_set_cur_ccr(chn,CCR_table[speed]);
-#endif
+
 	return 0;
 }
 
@@ -208,19 +208,7 @@ void motor_ccr_proc(void)
 					TIM1_SetCompare4(CCR_table[speed]);
 					//TIM1_SetCompare4(m_motor_config.motor[chn].cur_ccr);
 				}
-				break;
-			case MOTOR_CHN5:
-				{
-					//TIM5_SetCompare1(CCR_table[speed]);
-					//TIM5_SetCompare1(m_motor_config.motor[chn].cur_ccr);
-				}
-				break;
-			case MOTOR_CHN6:
-				{
-					//TIM5_SetCompare2(CCR_table[speed]);
-					//TIM5_SetCompare2(m_motor_config.motor[chn].cur_ccr);
-				}
-				break;
+				break;			
 		}
 	}
 }
@@ -294,7 +282,7 @@ ADC1_Channel_TypeDef motor_chn_to_adc_Chn(MOTOR_CHN_E chn)
 		case MOTOR_CHN4:
 			return ADC1_CHANNEL_3;
 		case MOTOR_CHN5:
-			return ADC1_CHANNEL_4;
+			return ADC1_CHANNEL_6;
 		case MOTOR_CHN6:
 			return ADC1_CHANNEL_5;
 		default:
@@ -314,8 +302,7 @@ u16  motor_get_adc_average(MOTOR_CHN_E chn)
 	
 	for(i = 0 ; i < ADC_SAMPLE_NUM ; i++)
 	{
-		adc_buff[i] = adc_get_value(motor_chn_to_adc_Chn(chn));	
-		delay_ms(1);
+		adc_buff[i] = adc_get_value(motor_chn_to_adc_Chn(chn));			
 	}
 
 	sort_buff(adc_buff,ADC_SAMPLE_NUM);

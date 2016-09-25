@@ -32,6 +32,9 @@
 #include "usr_motor.h"
 #include "public.h"
 
+extern void delay_irq_proc(void);
+extern void digital_display_proc(void);
+
 /** @addtogroup Template_Project
   * @{
   */
@@ -231,7 +234,22 @@ INTERRUPT_HANDLER(TIM1_UPD_OVF_TRG_BRK_IRQHandler, 11)
   /* In order to detect unexpected events during development,
      it is recommended to set a breakpoint on the following instruction.
   */
-  	motor_ccr_proc();
+
+  	static u16 cnt = 0;
+
+  	if(++cnt == 60000)
+	{
+		cnt = 0;
+	}
+
+	if(cnt%10 == 0)
+	{
+		digital_display_proc(); //10ms
+	}	
+
+  	delay_irq_proc();    // 1ms
+  	
+  	motor_ccr_proc();  	   
   	TIM1_ClearFlag(TIM1_FLAG_UPDATE);
 }
 
@@ -506,28 +524,13 @@ INTERRUPT_HANDLER(I2C_IRQHandler, 19)
   * @param  None
   * @retval None
   */
-extern void delay_irq_proc(void);
-extern void digital_display_proc(void);
+
 INTERRUPT_HANDLER(TIM6_UPD_OVF_TRG_IRQHandler, 23)
  {
   /* In order to detect unexpected events during development,
      it is recommended to set a breakpoint on the following instruction.
-  */    
-
-    static u16 cnt = 0;
-  	static int speed = 0;
-	
-    delay_irq_proc();
-
-	if(++cnt == 60000)      //60 s = 1min
-	{
-		cnt = 0;
-	}
-	
-	if(cnt%10 == 0)
-    {
-        digital_display_proc();
-    }
+  */   	
+	simulate_uart_rxtx_proc();
 
     TIM6_ClearITPendingBit(TIM6_IT_UPDATE);
  }

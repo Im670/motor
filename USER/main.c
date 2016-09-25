@@ -13,6 +13,7 @@
 #include "simulate_uart.h"
 #include "usr_motor.h"
 #include "public.h"
+#include "cmd_proto.h"
 
 
 #ifdef USE_FULL_ASSERT
@@ -46,7 +47,10 @@ u16  gCCR1       = 0;
 
 #define SET_SPEED 1
 
-#define TEST_CHN (MOTOR_CHN1)
+#define _ONLY_TEST_
+
+
+#define TEST_CHN (MOTOR_CHN5)
 
 
 #define _TEST_NORMAL_ADD_SPEED_     //测试2秒一次自动增速
@@ -70,26 +74,29 @@ main()
 	u16 cur_ccr = 0;
 	
 	 /* Clock divider to HSI/1 */
-	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);    
+	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);  
 
-
-	/*simulate_uart_config(1200);
-	sm_uart_test();*/
+	motor_init();	
+	simulate_uart_init(1200);
+	//sm_uart_test();
+	proto_test();
 
     //memset(cnt,0,sizeof(cnt));
 	
-    adc_init();
-    
-    delay_init();
+    adc_init(); 
+   
     usart1_init();
     digital_init();
 
-	motor_init();
+	
 
 	//motor_self_check();
 
-	
+#ifndef _ONLY_TEST_	
 	for(i = MOTOR_CHN1; i< MOTOR_CHN_NUM;i++)
+#else
+	for(i = TEST_CHN; i< TEST_CHN+1;i++)
+#endif	
 	{
 		motor_set_speed((MOTOR_CHN_E)i,SET_SPEED);
 	}
@@ -113,7 +120,7 @@ main()
 			gFinish = 0;
 		}
         
- #if 0       
+ #if 1       
 		for(i = TEST_CHN; i< TEST_CHN+1;i++)
 		{
 			/*if(i == MOTOR_CHN2)
@@ -124,12 +131,12 @@ main()
 			cur_ccr = motor_get_cur_ccr((MOTOR_CHN_E)i);
 			cur_speed = motor_get_speed((MOTOR_CHN_E)i);
 			
-			proc_motor(adc_average);
+			//proc_motor(adc_average);
 		#if 1	
 			/*if(i == MOTOR_CHN1)*/
 			{
-				usart1_printf("MOTOR_CHN%d cur_ccr:%d adc_average:%d state:%d\n",\
-					i+1,(u16)cur_ccr,adc_average,get_m_state());
+				usart1_printf("MOTOR_CHN%d cur_speed:%d adc_average:%d state:%d\n",\
+					i+1,(u16)cur_speed,adc_average,get_m_state());
 			}
 		#endif	
 			/*if(!motor_is_adc_in_expected((MOTOR_CHN_E)i,adc_average,(u16)cur_speed))
@@ -152,7 +159,7 @@ main()
 /*---------------------------
 检测堵转调速代码
 ----------------------------*/
-#ifndef _TEST_NORMAL_ADD_SPEED_
+#if 0
 
 		//这部分代码是60ms 执行一次
 		if(++cnt == 60/20)
@@ -169,7 +176,7 @@ main()
 					motor_set_speed(TEST_CHN,SET_SPEED);
 					set_m_state(M_WAITE);
 				}				
-				delay_ms(20);				
+				delay_ms(SAMPLE_TIME);				
 				continue;
 			}		
 
@@ -204,18 +211,18 @@ main()
 用于测试
 ----------------------------*/
 #ifdef _TEST_NORMAL_ADD_SPEED_
-#if 0
+#if 1
 	    if(++cnt == 500/SAMPLE_TIME)     // 2 秒一次
 		{
 		    cnt = 0;
 
-			if( cur_ccr + 1 <= MAX_CCR )
+			if( cur_speed + 1 <= SPEED_NUM )
 			{
 			    for(i = TEST_CHN; i< TEST_CHN+1;i++)
 				{	
-				    motor_set_cur_ccr((MOTOR_CHN_E)i,cur_ccr + ADD_STEP);
+				    motor_set_speed((MOTOR_CHN_E)i,cur_speed + ADD_STEP);
 					set_m_state(M_WAITE);
-					usart1_printf("-----------------------switch to ccr %d--------------\n",cur_ccr + 1);
+					usart1_printf("-----------------------switch to speed %d--------------\n",cur_speed + 1);
 				}	
 			}
 			else
@@ -228,8 +235,15 @@ main()
 			}	
 		}
 #endif
+
+
+#if 0
 		
-		for(i = MOTOR_CHN1; i< MOTOR_CHN_NUM; i++)
+#ifndef _ONLY_TEST_	
+		for(i = MOTOR_CHN1; i< MOTOR_CHN_NUM;i++)
+#else
+		for(i = TEST_CHN; i< TEST_CHN+1;i++)
+#endif	
 		{
 			adc_average = motor_get_adc_average((MOTOR_CHN_E)i);
 			cur_speed = motor_get_speed((MOTOR_CHN_E)i);
@@ -282,6 +296,7 @@ main()
 			motor_set_speed((MOTOR_CHN_E)i,cur_speed);
 		//	motor_set_speed(2,cur_speed[i]);
 		} 
+#endif
 #endif
 		
 			

@@ -1,6 +1,6 @@
 #include "stm8s.h"
 
-#define TIM6_PERIOD       124
+#define TIM6_PERIOD       (100-1)
 
 static u16 gtime_delay = 0;
 static u16 gtime_out = 0;
@@ -17,7 +17,7 @@ void delay_init(void)
    so TIM4_PERIOD = (0.001 * 125000 - 1) = 124 */
    
   /* Time base configuration */
-  TIM6_TimeBaseInit(TIM6_PRESCALER_128, TIM6_PERIOD);
+  TIM6_TimeBaseInit(TIM6_PRESCALER_1, TIM6_PERIOD);   // 1us * 10 
   /* Clear TIM4 update flag */
   TIM6_ClearFlag(TIM6_FLAG_UPDATE);
   /* Enable update interrupt */

@@ -1,7 +1,7 @@
 #ifndef __MOTOR_H__
 #define __MOTOR_H__
 
-#define SPEED_NUM  (80)          //速度档位数 10
+#define SPEED_NUM  (10)          //速度档位数 10
 #define MIN_CCR    (250-1)       //PWM 最小CCR  对应25% 占空比
 #define MAX_CCR    (1000-1)      //PWM 最大CCR  对应100% 占空比
 #define SAMPLE_TIME   (5)       // ms ADC采样时间
