@@ -131,11 +131,11 @@ int rb_length(ringbuf_t *pringbuf)
 	}
 	else if(pringbuf->write > pringbuf->read)
 	{
-		len = (int)(pringbuf->write) - (int)(pringbuf->read);
+		len = (pringbuf->write) - (pringbuf->read);
 	}
 	else
 	{
-		len = (int)(pringbuf->write) + (int)(pringbuf->size) - (int)(pringbuf->read);
+		len = (pringbuf->write) + (pringbuf->size) - (pringbuf->read);
 	}
 	
 	return len;

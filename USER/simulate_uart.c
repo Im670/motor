@@ -44,6 +44,8 @@ u8   simulate_uart_read_byte(void);
 
 void sm_printf(uint8_t *Data,...);
 
+#define SM_SET_TX_OUT()     GPIO_Init(GPIOC,GPIO_PIN_7,GPIO_MODE_OUT_PP_HIGH_FAST )
+#define SM_SET_RX_IN()      GPIO_Init(GPIOC,GPIO_PIN_6,GPIO_MODE_IN_PU_NO_IT )
 
 #define SM_UART_SET_BIT(x)  (((x)!=0) ? GPIO_WriteHigh(GPIOD,GPIO_PIN_5) : GPIO_WriteLow(GPIOD,GPIO_PIN_5))
 #define SM_UART_STOP()   
@@ -81,8 +83,8 @@ int simulate_uart_init(int bps)
 		return -1;
 	}
 
-	GPIO_Init(GPIOD,GPIO_PIN_6,GPIO_MODE_IN_PU_NO_IT );
-	GPIO_Init(GPIOD,GPIO_PIN_5,GPIO_MODE_OUT_PP_HIGH_FAST );
+	SM_SET_RX_IN(); 
+	SM_SET_TX_OUT(); 
 
 	/* Time base configuration */
 	TIM6_TimeBaseInit(_PRESCALER_, period);   // 

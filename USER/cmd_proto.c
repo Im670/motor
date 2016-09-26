@@ -54,35 +54,39 @@ int proto_send_data(u8 len_en,u8 led_flash)
 
 int proto_read_data(u8 *pdata, u8 len)
 {
-	motor_ctrl_cmd_t motor_ctrl;
+	int rdlen = 0;	
 
-	memset(&motor_ctrl,0,sizeof(motor_ctrl));
+	if(rb_length(&sm_rx_ringbuf) < len)
+	{
+		return 0;
+	}
 	
-	if(rb_read(&sm_rx_ringbuf,(u8*)&motor_ctrl.head,1)<=0)
+	rdlen = rb_read(&sm_rx_ringbuf,(u8*)&pdata[0],1);
+	if(rdlen <= 0)
 	{
 		return -1;
 	}	
 
-	if(motor_ctrl.head != RX_HEAD)
+	if(pdata[0] != RX_HEAD)
 	{
+		rb_updaterd(&sm_rx_ringbuf,1);
 		return -1;
 	}
 
 	rb_updaterd(&sm_rx_ringbuf,1);
 
-	if(rb_read(&sm_rx_ringbuf,(u8*)&motor_ctrl.data,sizeof(motor_ctrl_cmd_t)-1)<=0)
+	rdlen = rb_read(&sm_rx_ringbuf,(u8*)&pdata[1],sizeof(motor_ctrl_cmd_t)-1);
+	if(rdlen <=0)
 	{
 		return -1;
 	}
 
 	rb_updaterd(&sm_rx_ringbuf,sizeof(motor_ctrl_cmd_t)-1);
 
-	if(motor_ctrl.chksum != get_chksum((u8*)&motor_ctrl,sizeof(motor_ctrl.data) + 1))
+	if(pdata[sizeof(motor_ctrl_cmd_t) - 1] != get_chksum((u8*)pdata,sizeof(motor_ctrl_cmd_t) - 1))	
 	{
 		return -1;
-	}	
-
-	memcpy(pdata,(u8*)&motor_ctrl,len);
+	}
 	
 	return len;
 }
@@ -118,11 +122,11 @@ void proto_test(void)
 	int len = 0;
 	motor_ctrl_cmd_t motor_ctrl;
 	memset(&motor_ctrl,0,sizeof(motor_ctrl));
-	
+
+
+	simulate_uart_start_rx();
 	while(1)
 	{
-		simulate_uart_start_rx();
-
 		len = proto_read_data((u8*)&motor_ctrl,sizeof(motor_ctrl));
 		if( len > 0 )
 		{			

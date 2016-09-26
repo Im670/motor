@@ -5,7 +5,10 @@
 #include "usr_motor.h"
 #include "delay.h"
 #include "usr_usart.h"
+#include "simulate_uart.h"
 #include "usr_digital.h"
+#include "public.h"
+
 
 
 #define KEEP_ZERO_NUM (10)     //连续差值为0次数
@@ -14,7 +17,7 @@
 
 #define KEEP_CLEAR_NUM (5)
 
-
+#if 0
 typedef struct
 {
 	M_STEAE m_state;
@@ -28,7 +31,7 @@ typedef struct
 }m_ctrl_t;
 
 m_ctrl_t m_ctrl;
-
+#endif
 
 
 #define ADC_SAMPLE_NUM  (10)   //Adc 采样个数
@@ -65,7 +68,7 @@ static int make_ccr_table(int min, int max,int divnum)
 	for(i=0;i<divnum;i++)
 	{
 		CCR_table[i+1] = min + (i*add);
-		usart1_printf("(%d,%d)\n",i+1,CCR_table[i+1]);
+		DEBUG_PRINTF("(%d,%d)\n",i+1,CCR_table[i+1]);
 	}	
 	return 0;
 }
@@ -118,8 +121,8 @@ int motor_init(void)
 	(void)pwm_init();
 	memset(&m_motor_config,0,sizeof(m_motor_config));
 	memset(CCR_table,0,sizeof(CCR_table));
-	memset(&m_ctrl,0,sizeof(m_ctrl));
-	m_ctrl.inc_dir = 1;
+	//memset(&m_ctrl,0,sizeof(m_ctrl));
+	//m_ctrl.inc_dir = 1;
 	make_ccr_table(MIN_CCR,MAX_CCR,SPEED_NUM);
 	m_motor_config.init_finished = 1; 
 	return 0;
@@ -263,9 +266,9 @@ void motor_self_check(void)
 		motor_set_speed(MOTOR_CHN1,i);
 		delay_ms(100);
 		adc = motor_get_adc_average(MOTOR_CHN1);
-		usart1_printf("(%d,%d)\n",i,adc);		
+		DEBUG_PRINTF("(%d,%d)\n",i,adc);		
 	}
-	usart1_printf("cost time %d ms\n",(u16)(get_time_tick()-pre));
+	DEBUG_PRINTF("cost time %d ms\n",(u16)(get_time_tick()-pre));
 }
 
 
@@ -312,6 +315,7 @@ u16  motor_get_adc_average(MOTOR_CHN_E chn)
 	return adc_average;
 }
 
+#if 0
 void change_m_state(M_STEAE state)
 {
 	m_ctrl.m_state = state;
@@ -347,7 +351,7 @@ int proc_motor(u16 adc_value)
 					{
 						if(++m_ctrl.zero_cnt >= KEEP_ZERO_NUM)
 						{
-							usart1_printf("waite_time:%d\n",(SAMPLE_TIME*m_ctrl.waite_time));
+							DEBUG_PRINTF("waite_time:%d\n",(SAMPLE_TIME*m_ctrl.waite_time));
 							change_m_state(M_STEADY);	//切到稳定状态
 							
 							break;
@@ -516,4 +520,4 @@ int motor_is_stucked(void)
 	return (m_ctrl.m_state == M_STUCK);
 }
 
-
+#endif

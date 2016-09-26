@@ -3,8 +3,8 @@ DumpRWOnFly1=0
 DumpRWOnFly2=0
 DumpRWOnFly3=0
 DumpRWOnFly4=0
-WatchVariables1=
-FormatWatch1=0
+WatchVariables1=sm_tx_buffer!1;sm_tx_ringbuf!0;sm_rx_buffer!1;motor_ctrl!1;len!1;sm_rx_ringbuf!1;
+FormatWatch1=1
 FormatViewType1=1
 FormatViewAddress1=1
 WatchRWOnFlyTab1=0
@@ -34,6 +34,6 @@ ShowRegisterAddress=1
 [DebugState_v1-Debug.AddOn.St7McuIcdConf]
 McuName=STM8S903K3
 [DebugState_v1-Debug.AddOn.IcdBreak]
-ICDBreak0=CR:0x00000000,BK1:0x00000000,BK2:0x00000000
+ICDBreak0=CR:0x00000000,BK1:0x00ffffff,BK2:0x00ffffff
 [DebugState_v1-Debug.AddOn.SteppingMode]
 Mode=hardware

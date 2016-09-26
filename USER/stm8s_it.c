@@ -366,36 +366,14 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
   * @param  None
   * @retval None
   */
-extern char gRXBuff[32];
-extern int  gRXLen;
-extern int  gFinish;
  INTERRUPT_HANDLER(UART1_RX_IRQHandler, 18)
  {
     /* In order to detect unexpected events during development,
        it is recommended to set a breakpoint on the following instruction.
     */
-	 uint8_t temp;
+	
 
-	/* Read one byte from the receive data register and send it back */
-	temp = (UART1_ReceiveData8() & 0x7F);
-	UART1_SendData8(temp); 
-
-	if(gRXLen < sizeof(gRXBuff)-1)
-	{
-		gRXBuff[gRXLen++] = temp;
-	}
-	else
-	{
-		
-	}
-
-	if(temp == 0x0A)
-	{
-		if(!gFinish)
-		{
-			gFinish = 1;
-		}
-	}
+	/* Read one byte from the receive data register and send it back */	
 	
  }
 #endif /* (STM8S208) || (STM8S207) || (STM8S103) || (STM8S903) || (STM8AF62Ax) || (STM8AF52Ax) */
