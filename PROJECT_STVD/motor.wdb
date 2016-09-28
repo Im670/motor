@@ -45,7 +45,7 @@ ptn_Child35=Bar-34
 
 [WorkState_v1_2.DockState.Bar-0]
 BarID=59419
-Bars=69
+Bars=57
 Bar#0=0
 Bar#1=59647
 Bar#2=0
@@ -103,18 +103,6 @@ Bar#53=0
 Bar#54=0
 Bar#55=0
 Bar#56=0
-Bar#57=0
-Bar#58=0
-Bar#59=0
-Bar#60=0
-Bar#61=0
-Bar#62=0
-Bar#63=0
-Bar#64=0
-Bar#65=0
-Bar#66=0
-Bar#67=0
-Bar#68=0
 Style=0
 ExStyle=0
 PrevFloating=False

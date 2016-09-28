@@ -44,12 +44,23 @@ u8   simulate_uart_read_byte(void);
 
 void sm_printf(uint8_t *Data,...);
 
-#define SM_SET_TX_OUT()     GPIO_Init(GPIOC,GPIO_PIN_7,GPIO_MODE_OUT_PP_HIGH_FAST )
-#define SM_SET_RX_IN()      GPIO_Init(GPIOC,GPIO_PIN_6,GPIO_MODE_IN_PU_NO_IT )
 
-#define SM_UART_SET_BIT(x)  (((x)!=0) ? GPIO_WriteHigh(GPIOD,GPIO_PIN_5) : GPIO_WriteLow(GPIOD,GPIO_PIN_5))
+/*-----------------
+TX - PC7
+RX - PC6
+------------------*/
+#define GPIO_TX         GPIOD
+#define GPIO_TX_PIN     GPIO_PIN_5
+#define GPIO_RX         GPIOD
+#define GPIO_RX_PIN     GPIO_PIN_6
+
+
+#define SM_SET_TX_OUT()     GPIO_Init(GPIO_TX,GPIO_TX_PIN,GPIO_MODE_OUT_PP_HIGH_FAST )
+#define SM_SET_RX_IN()      GPIO_Init(GPIO_RX,GPIO_RX_PIN,GPIO_MODE_IN_PU_NO_IT )
+
+#define SM_UART_SET_BIT(x)  (((x)!=0) ? GPIO_WriteHigh(GPIO_TX,GPIO_TX_PIN) : GPIO_WriteLow(GPIO_TX,GPIO_TX_PIN))
 #define SM_UART_STOP()   
-#define SM_UART_READ_BIT()   GPIO_ReadInputPin(GPIOD,GPIO_PIN_6)
+#define SM_UART_READ_BIT()   GPIO_ReadInputPin(GPIO_RX,GPIO_PIN_6)
 
 
 ringbuf_t sm_tx_ringbuf ;
@@ -261,20 +272,24 @@ void sm_uart_test(void)
 	simulate_uart_start_tx();
 	sm_printf("sm_printf\n");
 	delay_ms(1000);  
+
+	//return;
 	
-	simulate_uart_start_rx();		
+	//simulate_uart_start_rx();		
 	
-	while(1);
+	while(1)
 	{
-		simulate_uart_start_rx();		
+		/*simulate_uart_start_rx();		
 		while(sm_uart_ctrl.rx_end == 0);
 		data= simulate_uart_read_byte();
 
 		simulate_uart_start_tx();
 		simulate_uart_send_byte(data);
-		while(sm_uart_ctrl.tx_end == 0);
+		while(sm_uart_ctrl.tx_end == 0);*/
+
+		sm_printf("sm_printf\n");
 		
-		//delay_ms(1000);  
+		delay_ms(1000);  
 	}
 }
 
@@ -282,6 +297,8 @@ void sm_uart_test(void)
 
 extern char * itoa(u16 Value,u8 *pString);
 extern char * HexToStr(char *s,int x);
+
+//sm_printf("format",...);
 
 void sm_printf(uint8_t *Data,...)
 { 

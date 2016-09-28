@@ -43,7 +43,7 @@ int sort_buff(u16 * pbuff,u16 len);
 #define _ONLY_TEST_
 
 
-#define TEST_CHN (MOTOR_CHN6)
+#define TEST_CHN (MOTOR_CHN1)
 
 
 #define _TEST_NORMAL_ADD_SPEED_     //测试2秒一次自动增速
@@ -72,16 +72,20 @@ main()
 
 	motor_init();	
 	simulate_uart_init(1200);
+	simulate_uart_start_tx();
+	
 	//sm_uart_test();
 	proto_test();
-	
+	sm_printf("line:%d _sm_printf\n",__LINE__);
+	delay_ms(1000);  
     adc_init(); 
    
-    usart1_init();
+    //usart1_init();
     digital_init();
 
 	
-
+	sm_printf("line:%d _sm_printf\n",__LINE__);
+	delay_ms(1000);  
 	//motor_self_check();
 
 #ifndef _ONLY_TEST_	
@@ -98,7 +102,7 @@ main()
 	
 	while (1)
 	{
-        
+        sm_printf("_1_sm_printf\n");
  #if 1       
 		for(i = TEST_CHN; i< TEST_CHN+1;i++)
 		{
@@ -117,81 +121,16 @@ main()
 				DEBUG_PRINTF("MOTOR_CHN%d cur_speed:%d adc_average:%d \n",\
 					i+1,(u16)cur_speed,adc_average );
 			}
-		#endif	
-			/*if(!motor_is_adc_in_expected((MOTOR_CHN_E)i,adc_average,(u16)cur_speed))
-			{
-				DEBUG_PRINTF("MOTOR_CHN%d is in ERROR adc = %d\n",i+1,adc_average);
-				if(cur_speed + 1 <= SPEED_NUM)
-				{
-					motor_set_speed((MOTOR_CHN_E)i,cur_speed + 1);					
-				}				
-			}
-			else
-			{
-				motor_set_speed((MOTOR_CHN_E)i,1);				
-			}*/
-			
-			//delay_ms(100);
+		#endif
 		}
 #endif
-
-/*---------------------------
-检测堵转调速代码
-----------------------------*/
-#if 0
-
-		//这部分代码是60ms 执行一次
-		if(++cnt == 60/20)
-		{
-			cnt = 0;
-
-			if(time_out>0)
-			{
-				time_out -- ;
-
-				if(M_STUCK != get_m_state())
-				{
-					time_out = 0;
-					motor_set_speed(TEST_CHN,SET_SPEED);
-					set_m_state(M_WAITE);
-				}				
-				delay_ms(SAMPLE_TIME);				
-				continue;
-			}		
-
-			if(motor_is_stucked())
-			{
-				if(cur_speed + 1 <= SPEED_NUM)
-				{
-					u8 next_speed = 0;
-					/*if(cur_speed < 5)
-					{
-						next_speed = 5;
-					}
-					else*/
-					{
-						next_speed = cur_speed + 1;
-					}
-					motor_set_speed((MOTOR_CHN_E)TEST_CHN,next_speed);	
-					time_out = 240/60;  //240ms
-				}				
-			}			
-			else if(/*M_STEADY == get_m_state() &&*/ cur_speed != SET_SPEED)
-			{
-				motor_set_speed(TEST_CHN,SET_SPEED);
-				set_m_state(M_WAITE);
-			}				
-			
-		}
-#endif
-
 
 /*---------------------------
 用于测试
 ----------------------------*/
 #ifdef _TEST_NORMAL_ADD_SPEED_
 #if 1
-	    if(++cnt == 500/SAMPLE_TIME)     // 2 秒一次
+	    if(++cnt == 5000/SAMPLE_TIME)     // 2 秒一次
 		{
 		    cnt = 0;
 
@@ -269,7 +208,7 @@ main()
 			
 			if(cur_speed < 1)
 			{
-				cur_speed =1;
+				cur_speed = 1;
 			}
 			DEBUG_PRINTF("-----------------------%dch switch to speed %d--------------\n",i,(u16)cur_speed );
 			motor_set_speed((MOTOR_CHN_E)i,cur_speed);

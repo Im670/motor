@@ -6,3 +6,7 @@ Keyword=ST7Workspace-V0.7
 [Project0]
 Filename=motor.stp
 Dependencies=
+[Options]
+ActiveProject=motor
+ActiveConfig=Debug
+AddSortedElements=0
