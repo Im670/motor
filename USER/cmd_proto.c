@@ -8,14 +8,29 @@
 #include "cmd_proto.h"
 
 
+
+typedef enum
+{
+	PROTO_RECVING,     //接收
+	PROTO_SENDING      //正在发送 	
+}PROTO_STATE_E;
+
+
+static PROTO_STATE_E proto_state = PROTO_RECVING;
+
 extern ringbuf_t sm_rx_ringbuf ;
 extern ringbuf_t sm_tx_ringbuf ;
 
 
-void proto_init();
+void proto_init(void);
 int proto_read_data(u8 *pdata ,u8 len);
 int proto_send_data(u8 len_en,u8 led_flash);
 int proto_proc_data(motor_ctrl_cmd_t *pm_ctrl);
+void proto_start_recv(void);
+int is_proto_sending(void);
+int is_proto_send_finished(void);
+void proto_test(void);
+
 
 u8 get_chksum(u8 *pdata,u8 len )
 {
@@ -35,6 +50,17 @@ u8 get_chksum(u8 *pdata,u8 len )
 }
 
 
+void proto_init(void)
+{
+	simulate_uart_init(2400);
+	proto_start_recv();
+}
+
+int is_proto_sending(void)
+{
+	return (PROTO_SENDING == proto_state);
+}
+
 int proto_send_data(u8 len_en,u8 led_flash)
 {
 	led_ctrl_cmd_t led_ctrl;
@@ -46,7 +72,11 @@ int proto_send_data(u8 len_en,u8 led_flash)
 	led_ctrl.data[1] = led_flash;
 
 	led_ctrl.chksum = get_chksum((u8*)&led_ctrl,sizeof(led_ctrl.data)+1);
+	
+	proto_state = PROTO_SENDING;
+	simulate_uart_start_tx();
 	simulate_uart_send((u8*)&led_ctrl,sizeof(led_ctrl));
+	
 	return 0;
 	
 }
@@ -117,23 +147,41 @@ int proto_proc_data(motor_ctrl_cmd_t *pm_ctrl)
 }
 
 
+void proto_start_recv(void)
+{
+	proto_state = PROTO_RECVING;
+	simulate_uart_start_rx();
+}
+
+int is_proto_send_finished(void)
+{
+	return (0 == rb_length(&sm_tx_ringbuf));
+}
+
 void proto_test(void)
 {
 	int len = 0;
 	motor_ctrl_cmd_t motor_ctrl;
 	memset(&motor_ctrl,0,sizeof(motor_ctrl));
-
-
-	simulate_uart_start_rx();
+	
 	while(1)
 	{
-		len = proto_read_data((u8*)&motor_ctrl,sizeof(motor_ctrl));
-		if( len > 0 )
-		{			
-			//sm_printf("succeed.\n");
-			simulate_uart_send((u8*)&motor_ctrl,sizeof(motor_ctrl));
-			//simulate_uart_start_tx();
-			
+		if(is_proto_sending())
+		{
+			if(is_proto_send_finished())
+			{
+				proto_start_recv();
+			}
+		}
+		else
+		{
+			len = proto_read_data((u8*)&motor_ctrl,sizeof(motor_ctrl));
+			if( len > 0 )
+			{			
+				proto_proc_data(&motor_ctrl);			
+				
+				proto_send_data(6,6);
+			}			
 		}
 	}
 }

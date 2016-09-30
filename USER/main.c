@@ -46,7 +46,7 @@ int sort_buff(u16 * pbuff,u16 len);
 #define TEST_CHN (MOTOR_CHN1)
 
 
-#define _TEST_NORMAL_ADD_SPEED_     //测试2秒一次自动增速
+//#define _TEST_NORMAL_ADD_SPEED_     //测试2秒一次自动增速
 
 #define ADD_STEP  (1)  //占空比微调步长
 
@@ -66,27 +66,22 @@ main()
 	u16 adc_average = 0;
 	u16 time_out = 0;
 	u16 cur_ccr = 0;
+
+	int len = 0;
+	motor_ctrl_cmd_t motor_ctrl;
+	memset(&motor_ctrl,0,sizeof(motor_ctrl));
 	
 	 /* Clock divider to HSI/1 */
 	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);  
 
 	motor_init();	
-	simulate_uart_init(1200);
-	simulate_uart_start_tx();
-	
+	proto_init();	
 	//sm_uart_test();
-	proto_test();
-	sm_printf("line:%d _sm_printf\n",__LINE__);
-	delay_ms(1000);  
+	//proto_test();	
     adc_init(); 
    
     //usart1_init();
-    digital_init();
-
-	
-	sm_printf("line:%d _sm_printf\n",__LINE__);
-	delay_ms(1000);  
-	//motor_self_check();
+    digital_init();	
 
 #ifndef _ONLY_TEST_	
 	for(i = MOTOR_CHN1; i< MOTOR_CHN_NUM;i++)
@@ -102,28 +97,24 @@ main()
 	
 	while (1)
 	{
-        sm_printf("_1_sm_printf\n");
- #if 1       
-		for(i = TEST_CHN; i< TEST_CHN+1;i++)
+
+		if(is_proto_sending())
 		{
-			/*if(i == MOTOR_CHN2)
+			if(is_proto_send_finished())
 			{
-				continue;
-			}*/
-			adc_average = motor_get_adc_average((MOTOR_CHN_E)i);
-			cur_ccr = motor_get_cur_ccr((MOTOR_CHN_E)i);
-			cur_speed = motor_get_speed((MOTOR_CHN_E)i);
-			
-			//proc_motor(adc_average);
-		#if 1	
-			/*if(i == MOTOR_CHN1)*/
-			{
-				DEBUG_PRINTF("MOTOR_CHN%d cur_speed:%d adc_average:%d \n",\
-					i+1,(u16)cur_speed,adc_average );
+				proto_start_recv();
 			}
-		#endif
 		}
-#endif
+		else
+		{
+			len = proto_read_data((u8*)&motor_ctrl,sizeof(motor_ctrl));
+			if( len > 0 )
+			{			
+				proto_proc_data(&motor_ctrl);			
+				
+				proto_send_data(6,6);
+			}			
+		}        
 
 /*---------------------------
 用于测试
@@ -166,7 +157,7 @@ main()
 			adc_average = motor_get_adc_average((MOTOR_CHN_E)i);
 			cur_speed = motor_get_speed((MOTOR_CHN_E)i);
 			
-			DEBUG_PRINTF("----------------%d通道AD值为:%d-----------------\n",i,adc_average );
+			//DEBUG_PRINTF("----------------%d通道AD值为:%d-----------------\n",i,adc_average );
 
 			if(cur_speed < 15)
 			{
@@ -210,7 +201,7 @@ main()
 			{
 				cur_speed = 1;
 			}
-			DEBUG_PRINTF("-----------------------%dch switch to speed %d--------------\n",i,(u16)cur_speed );
+			//DEBUG_PRINTF("-----------------------%dch switch to speed %d--------------\n",i,(u16)cur_speed );
 			motor_set_speed((MOTOR_CHN_E)i,cur_speed);
 		//	motor_set_speed(2,cur_speed[i]);
 		} 
@@ -218,7 +209,7 @@ main()
 #endif
 		
 			
-		delay_ms(SAMPLE_TIME);	        
+		//delay_ms(SAMPLE_TIME);	        
 	}
 }
 

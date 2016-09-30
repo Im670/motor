@@ -17,23 +17,6 @@
 
 #define KEEP_CLEAR_NUM (5)
 
-#if 0
-typedef struct
-{
-	M_STEAE m_state;
-	char inc_dir;  // 0 :负增长 1:正增长
-	u16 last_adc;
-	int inc_cnt;
-	int dec_cnt;
-	int zero_cnt;
-	int flag;
-	u16 waite_time;
-}m_ctrl_t;
-
-m_ctrl_t m_ctrl;
-#endif
-
-
 #define ADC_SAMPLE_NUM  (10)   //Adc 采样个数
 
 #define ERR_RANG (10)
@@ -47,30 +30,25 @@ int motor_control_proc(void);
 void motor_ccr_proc(void);
 ADC1_Channel_TypeDef motor_chn_to_adc_Chn(MOTOR_CHN_E chn);
 
-u16 CCR_table[SPEED_NUM+1]={0};   //CCR_table[0] =0 CCR_table[1] = min
-
 static motor_config_t m_motor_config ;
 
-static int make_ccr_table(int min, int max,int divnum)
+static u16 get_ccr_by_speed( u8  speed)
 {
-	int add = 0;
-	int i = 0;
-		
-	if(min >= max || divnum <= 0)
-	{
-		return -1;
-	}
+	static int add = (MAX_CCR-MIN_CCR)/SPEED_NUM;
 
-	add = (max - min)/divnum;
-	
-	CCR_table[0] = 0;
-	
-	for(i=0;i<divnum;i++)
+	if(speed > SPEED_NUM)
 	{
-		CCR_table[i+1] = min + (i*add);
-		DEBUG_PRINTF("(%d,%d)\n",i+1,CCR_table[i+1]);
-	}	
-	return 0;
+		speed = SPEED_NUM;
+	}
+	
+	if(0 == speed)
+	{
+		return 0;
+	}
+	else
+	{
+		return (MIN_CCR + (speed*add));
+	}
 }
 
 void pwm_init(void)
@@ -119,11 +97,10 @@ void pwm_init(void)
 int motor_init(void)
 {
 	(void)pwm_init();
-	memset(&m_motor_config,0,sizeof(m_motor_config));
-	memset(CCR_table,0,sizeof(CCR_table));
+	memset(&m_motor_config,0,sizeof(m_motor_config));	
 	//memset(&m_ctrl,0,sizeof(m_ctrl));
 	//m_ctrl.inc_dir = 1;
-	make_ccr_table(MIN_CCR,MAX_CCR,SPEED_NUM);
+
 	m_motor_config.init_finished = 1; 
 	return 0;
 }
@@ -152,14 +129,15 @@ motor_set_speed(chn,speed)
 ---------------------------*/
 int motor_set_speed(MOTOR_CHN_E chn ,u8 speed)
 {
+	u16 ccr = 0;
 	if(speed > SPEED_NUM || speed < 0)
 	{
 		return -1;
 	}	
 	
 	m_motor_config.motor[chn].cur_speed = speed;
-
-	motor_set_cur_ccr(chn,CCR_table[speed]);
+	ccr = get_ccr_by_speed(speed);
+	motor_set_cur_ccr(chn,ccr);
 
 	return 0;
 }
@@ -184,31 +162,32 @@ void motor_ccr_proc(void)
 		
 	for(chn = MOTOR_CHN1 ; chn < MOTOR_CHN5 ; chn++)
 	{
-		int speed = m_motor_config.motor[chn].cur_speed;
+		u8 speed = m_motor_config.motor[chn].cur_speed;
+		u16 ccr  = get_ccr_by_speed(speed);
 		
 		switch(chn)
 		{
 			case MOTOR_CHN1:
 				{
-					TIM1_SetCompare1(CCR_table[speed]);
+					TIM1_SetCompare1(ccr);
 					//TIM1_SetCompare1(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN2:
 				{
-					TIM1_SetCompare2(CCR_table[speed]);
+					TIM1_SetCompare2(ccr);
 					//TIM1_SetCompare2(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN3:
 				{
-					TIM1_SetCompare3(CCR_table[speed]);
+					TIM1_SetCompare3(ccr);
 					//TIM1_SetCompare3(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN4:
 				{
-					TIM1_SetCompare4(CCR_table[speed]);
+					TIM1_SetCompare4(ccr);
 					//TIM1_SetCompare4(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;			
@@ -227,19 +206,20 @@ void motor_ccr_proc_chn5_6(void)
 		
 	for(chn = MOTOR_CHN5 ; chn < MOTOR_CHN_NUM;chn++)
 	{
-		int speed = m_motor_config.motor[chn].cur_speed;
+		u8 speed = m_motor_config.motor[chn].cur_speed;
+		u16 ccr  = get_ccr_by_speed(speed);
 		
 		switch(chn)
 		{			
 			case MOTOR_CHN5:
 				{
-					TIM5_SetCompare1(CCR_table[speed]);
+					TIM5_SetCompare1(ccr);
 					//TIM5_SetCompare1(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
 			case MOTOR_CHN6:
 				{
-					TIM5_SetCompare2(CCR_table[speed]);
+					TIM5_SetCompare2(ccr);
 					//TIM5_SetCompare2(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
@@ -315,209 +295,3 @@ u16  motor_get_adc_average(MOTOR_CHN_E chn)
 	return adc_average;
 }
 
-#if 0
-void change_m_state(M_STEAE state)
-{
-	m_ctrl.m_state = state;
-
-	m_ctrl.flag = 0;
-	m_ctrl.zero_cnt = 0;
-	m_ctrl.inc_cnt = 0;
-	m_ctrl.dec_cnt= 0;
-	m_ctrl.waite_time = 0;
-}
-
-
-
-int proc_motor(u16 adc_value)
-{
-	int dec = 0;
-	dec = (int)(adc_value - m_ctrl.last_adc);
-	
-	switch(m_ctrl.m_state)
-	{
-		case M_WAITE:
-			{
-				m_ctrl.waite_time ++;
-				
-				if(adc_value < 10) //小电流忽略不计
-				{
-					break;
-				}
-				
-				if(m_ctrl.inc_dir) //正增长
-				{
-					if(dec == 0)
-					{
-						if(++m_ctrl.zero_cnt >= KEEP_ZERO_NUM)
-						{
-							DEBUG_PRINTF("waite_time:%d\n",(SAMPLE_TIME*m_ctrl.waite_time));
-							change_m_state(M_STEADY);	//切到稳定状态
-							
-							break;
-						}
-					}
-					else
-					{
-						m_ctrl.zero_cnt = 0;
-					}
-				}
-				else
-				{
-					if(dec > 0)
-					{
-						if(!m_ctrl.inc_cnt)
-						{
-							m_ctrl.inc_cnt = 1;
-							break;
-						}
-					}
-
-					if(m_ctrl.inc_cnt)
-					{
-						if(dec < 0)
-						{
-							m_ctrl.inc_cnt = 0;
-							break;
-						}
-
-						if(++m_ctrl.inc_cnt >= KEEP_INC_NUM)
-						{
-							change_m_state(M_STUCK);
-							break;
-						}
-					}
-				
-					if(dec == 0)
-					{
-						m_ctrl.zero_cnt++;
-							
-						if(m_ctrl.zero_cnt >= KEEP_ZERO_NUM)
-						{							
-							change_m_state(M_STEADY);							
-							break;
-						}
-
-						if(m_ctrl.zero_cnt >= KEEP_CLEAR_NUM)
-						{
-							m_ctrl.inc_cnt = 0;   //计数清零
-							m_ctrl.dec_cnt= 0;
-						}						
-					}
-					else
-					{
-						m_ctrl.zero_cnt = 0;				
-					}					
-										
-				}				
-			}
-			break;
-		case M_STEADY:
-			{
-				if(dec > 0)
-				{
-					if(!m_ctrl.flag)
-					{
-						m_ctrl.flag = 1;
-						break;
-					}
-				}	
-
-				if(m_ctrl.flag)
-				{
-					if(dec < 0)
-					{
-						m_ctrl.inc_cnt = 0;
-						m_ctrl.flag = 0;						
-						break;
-					}
-
-					if(dec == 0)
-					{
-						if(++m_ctrl.zero_cnt >= KEEP_ZERO_NUM)
-						{
-							change_m_state(M_STEADY);
-							break;
-						}
-						break;
-					}
-					else
-					{
-						m_ctrl.zero_cnt = 0;
-					}
-
-					if(++m_ctrl.inc_cnt >= KEEP_INC_NUM)
-					{
-						change_m_state(M_STUCK);						
-						break;
-					}
-				}
-			}
-			break;
-		case M_STUCK:
-			{
-				if(dec < 0)
-				{
-					if(!m_ctrl.flag )
-					{
-						m_ctrl.flag = 1;
-						break;
-					}
-				}
-
-				if(m_ctrl.flag)
-				{
-					if(dec > 0)
-					{
-						m_ctrl.dec_cnt = 0;
-						m_ctrl.flag = 0;						
-						break;
-					}
-
-					if(dec == 0)
-					{
-						if(++m_ctrl.zero_cnt >= KEEP_ZERO_NUM)
-						{
-							change_m_state(M_WAITE);
-							break;
-						}
-					}
-					m_ctrl.zero_cnt = 0;
-
-					if(++m_ctrl.dec_cnt >= KEEP_DEC_NUM)
-					{
-						m_ctrl.inc_dir = 0;
-						change_m_state(M_WAITE);
-						break;
-					}
-				}
-			}			
-			break;
-			
-	}
-
-	m_ctrl.last_adc = adc_value;
-}
-
-int get_m_state(void)
-{
-	return m_ctrl.m_state;
-}
-
-void set_m_state(M_STEAE state)
-{
-	m_ctrl.m_state = state;
-
-	m_ctrl.flag = 0;
-	m_ctrl.zero_cnt = 0;
-	m_ctrl.inc_cnt = 0;
-	m_ctrl.dec_cnt= 0;
-	m_ctrl.waite_time = 0;
-}
-
-int motor_is_stucked(void)
-{
-	return (m_ctrl.m_state == M_STUCK);
-}
-
-#endif

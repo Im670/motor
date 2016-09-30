@@ -30,10 +30,13 @@ typedef struct
 }motor_ctrl_cmd_t;
 
 
-void proto_init();
+void proto_init(void);
 int proto_read_data(u8 *pdata ,u8 len);
 int proto_send_data(u8 len_en,u8 led_flash);
 int proto_proc_data(motor_ctrl_cmd_t *pm_ctrl);
+void proto_start_recv(void);
+int is_proto_sending(void);
+int is_proto_send_finished(void);
 void proto_test(void);
 
 #endif

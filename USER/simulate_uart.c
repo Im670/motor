@@ -60,7 +60,7 @@ RX - PC6
 
 #define SM_UART_SET_BIT(x)  (((x)!=0) ? GPIO_WriteHigh(GPIO_TX,GPIO_TX_PIN) : GPIO_WriteLow(GPIO_TX,GPIO_TX_PIN))
 #define SM_UART_STOP()   
-#define SM_UART_READ_BIT()   GPIO_ReadInputPin(GPIO_RX,GPIO_PIN_6)
+#define SM_UART_READ_BIT()   GPIO_ReadInputPin(GPIO_RX,GPIO_RX_PIN)
 
 
 ringbuf_t sm_tx_ringbuf ;
@@ -98,7 +98,7 @@ int simulate_uart_init(int bps)
 	SM_SET_TX_OUT(); 
 
 	/* Time base configuration */
-	TIM6_TimeBaseInit(_PRESCALER_, period);   // 
+	TIM6_TimeBaseInit(_PRESCALER_, period - 1);   // 
 	/* Clear TIM4 update flag */
 	TIM6_ClearFlag(TIM6_FLAG_UPDATE);
 	/* Enable update interrupt */
@@ -195,8 +195,7 @@ void simulate_uart_rxtx_proc(void)
 					case TX_LOAD_DATA:
 					{
 						if(rb_read(&sm_tx_ringbuf,&sm_uart_ctrl.tx_data,1) > 0)
-						{
-							rb_updaterd(&sm_tx_ringbuf, 1);
+						{							
 							sm_uart_ctrl.tx_step = TX_SEND_BIT;
 							cnt = 0;
 						}
@@ -222,6 +221,7 @@ void simulate_uart_rxtx_proc(void)
 							SM_UART_SET_BIT(1); //Ω· ¯Œª
 							sm_uart_ctrl.tx_end = 1;
 							cnt = 0;
+							rb_updaterd(&sm_tx_ringbuf, 1);
 							sm_uart_ctrl.tx_step = TX_LOAD_DATA;
 						}
 					}
@@ -241,10 +241,10 @@ int simulate_uart_send(u8* pdata ,u8 len)
 	{
 		return -1;
 	}
-	
+	sim();
 	rb_write(&sm_tx_ringbuf,pdata,len);
 	rb_updatewr(&sm_tx_ringbuf, len);
-	
+	rim();
 	return len;
 }
 
