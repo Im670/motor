@@ -17,7 +17,7 @@
 
 #define KEEP_CLEAR_NUM (5)
 
-#define ADC_SAMPLE_NUM  (10)   //Adc 采样个数
+#define ADC_SAMPLE_NUM  (50)   //Adc 采样个数
 
 #define ERR_RANG (10)
 
@@ -147,6 +147,25 @@ u8 motor_get_speed(MOTOR_CHN_E chn)
 	return m_motor_config.motor[chn].cur_speed;
 }
 
+int motor_set_dst_speed(MOTOR_CHN_E chn ,u8 speed)
+{
+	u16 ccr = 0;
+	if(speed > SPEED_NUM || speed < 0)
+	{
+		return -1;
+	}	
+	
+	m_motor_config.motor[chn].dst_speed = speed;	
+	
+
+	return 0;
+}
+
+u8 motor_get_dst_speed(MOTOR_CHN_E chn)
+{
+	return m_motor_config.motor[chn].dst_speed;
+}
+
 
 /*
 放到TIM update 中断函数里刷新CCR
@@ -160,32 +179,32 @@ void motor_ccr_proc(void)
 		return;
 	}
 		
-	for(chn = MOTOR_CHN1 ; chn < MOTOR_CHN5 ; chn++)
+	for(chn = MOTOR_CHN3 ; chn < MOTOR_CHN_NUM; chn++)
 	{
 		u8 speed = m_motor_config.motor[chn].cur_speed;
 		u16 ccr  = get_ccr_by_speed(speed);
 		
 		switch(chn)
 		{
-			case MOTOR_CHN1:
+			case MOTOR_CHN6:// 6
 				{
 					TIM1_SetCompare1(ccr);
 					//TIM1_SetCompare1(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
-			case MOTOR_CHN2:
+			case MOTOR_CHN5:// 5
 				{
 					TIM1_SetCompare2(ccr);
 					//TIM1_SetCompare2(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
-			case MOTOR_CHN3:
+			case MOTOR_CHN4://4    /*4*/
 				{
 					TIM1_SetCompare3(ccr);
 					//TIM1_SetCompare3(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
-			case MOTOR_CHN4:
+			case MOTOR_CHN3:/*3*/
 				{
 					TIM1_SetCompare4(ccr);
 					//TIM1_SetCompare4(m_motor_config.motor[chn].cur_ccr);
@@ -195,7 +214,7 @@ void motor_ccr_proc(void)
 	}
 }
 
-void motor_ccr_proc_chn5_6(void)
+void motor_ccr_proc_chn1_2(void)
 {
 	int chn = 0;
 
@@ -204,20 +223,20 @@ void motor_ccr_proc_chn5_6(void)
 		return;
 	}
 		
-	for(chn = MOTOR_CHN5 ; chn < MOTOR_CHN_NUM;chn++)
+	for(chn = MOTOR_CHN1 ; chn < MOTOR_CHN3;chn++)
 	{
 		u8 speed = m_motor_config.motor[chn].cur_speed;
 		u16 ccr  = get_ccr_by_speed(speed);
 		
 		switch(chn)
 		{			
-			case MOTOR_CHN5:
+			case MOTOR_CHN2:/*2*/
 				{
 					TIM5_SetCompare1(ccr);
 					//TIM5_SetCompare1(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
-			case MOTOR_CHN6:
+			case MOTOR_CHN1:/*1*/
 				{
 					TIM5_SetCompare2(ccr);
 					//TIM5_SetCompare2(m_motor_config.motor[chn].cur_ccr);
@@ -256,17 +275,17 @@ ADC1_Channel_TypeDef motor_chn_to_adc_Chn(MOTOR_CHN_E chn)
 {
 	switch(chn)
 	{
-		case MOTOR_CHN1:
+		case MOTOR_CHN6:/*6*/
 			return ADC1_CHANNEL_0;
-		case MOTOR_CHN2:
+		case MOTOR_CHN5:/*5*/
 			return ADC1_CHANNEL_1;
-		case MOTOR_CHN3:
+		case MOTOR_CHN4:/*4*/
 			return ADC1_CHANNEL_2;
-		case MOTOR_CHN4:
+		case MOTOR_CHN3:/*3*/
 			return ADC1_CHANNEL_3;
-		case MOTOR_CHN5:
+		case MOTOR_CHN2:/*2*/
 			return ADC1_CHANNEL_6;
-		case MOTOR_CHN6:
+		case MOTOR_CHN1:/*1*/
 			return ADC1_CHANNEL_5;
 		default:
 			return ADC1_CHANNEL_0;

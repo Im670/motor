@@ -30,6 +30,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm8s_it.h"
 #include "usr_motor.h"
+#include "simulate_uart.h"
 #include "public.h"
 
 extern void delay_irq_proc(void);
@@ -146,6 +147,12 @@ INTERRUPT_HANDLER(EXTI_PORTC_IRQHandler, 5)
   /* In order to detect unexpected events during development,
      it is recommended to set a breakpoint on the following instruction.
   */
+	if ((GPIO_ReadInputData(GPIO_RX) & GPIO_RX_PIN) == 0x00)
+	{
+		sm_uart_en_rx_irq(0);
+		sm_reset_timer_period((sm_period/2) -1);
+	}
+	
 }
 
 /**
@@ -158,6 +165,8 @@ INTERRUPT_HANDLER(EXTI_PORTD_IRQHandler, 6)
   /* In order to detect unexpected events during development,
      it is recommended to set a breakpoint on the following instruction.
   */
+  
+  
 }
 
 /**
@@ -246,7 +255,6 @@ INTERRUPT_HANDLER(TIM1_UPD_OVF_TRG_BRK_IRQHandler, 11)
 	{
 		digital_display_proc(); //10ms
 	}	
-
   	delay_irq_proc();    // 1ms
   	
   	motor_ccr_proc();  	   
@@ -277,8 +285,7 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
 	/* In order to detect unexpected events during development,
 	 it is recommended to set a breakpoint on the following instruction.
 	*/
-  	//simulate_uart_rxtx_proc();
-	motor_ccr_proc_chn5_6();
+	motor_ccr_proc_chn1_2();
 	TIM5_ClearITPendingBit(TIM5_IT_UPDATE);
  }
  

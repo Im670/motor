@@ -115,7 +115,7 @@ static int rb_leftspace(ringbuf_t *pringbuf)
 	{
 		return pringbuf->read - pringbuf->write;
 	}
-	else
+	else 
 	{
 		return pringbuf->read + pringbuf->size - pringbuf->write;
 	}
@@ -125,7 +125,7 @@ int rb_length(ringbuf_t *pringbuf)
 {
 	int len = 0;
 	
-	if(pringbuf->write == pringbuf->read && pringbuf->bfull == 0)
+ 	if(pringbuf->write == pringbuf->read && pringbuf->bfull == 0)
 	{
 		return 0;
 	}
@@ -138,7 +138,7 @@ int rb_length(ringbuf_t *pringbuf)
 		len = (pringbuf->write) + (pringbuf->size) - (pringbuf->read);
 	}
 	
-	return len;
+ 	return len;
 }
 
 

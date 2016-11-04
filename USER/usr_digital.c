@@ -1,7 +1,7 @@
-
+ 
 #include "stm8s.h"
 
-
+extern u8 flag_smg;
 
 typedef enum
 {
@@ -11,7 +11,7 @@ typedef enum
     BIT_3 = 0x08,
     BIT_4 = 0x10,
     BIT_5 = 0x20,
-    BIT_6 = 0x40,
+    BIT_6 = 0x40,    
     BIT_8 = 0x80
 }BIT_E;
 
@@ -60,7 +60,7 @@ typedef enum
 }DGT_POS_E;
 
 //const u8 D_CODE[]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f,0x77,0x7c,0x39,0x5e,0x79,0x71};  //共阴数码表  
-//const u8 D_CODE2[]={0xC0,0xF9,0xA4,0xB0,0x99,0x92, 0x82,0xF8,0x80,0x90,0x88,0x83,0xC6,0xA1,0x86,0x8E};	//共阳数码表
+//const u8 D_CODE2[]={0xC0,0xF9,0xA4,0xB0,0x99,0x92, 0x82,0xF8,0x80,0 x90,0x88,0x83,0xC6,0xA1,0x86,0x8E};	//共阳数码表
 /*   
      b 
   |------
@@ -72,10 +72,14 @@ typedef enum
   ------|
      g  
 */
-const u8 D_CODE2[]={0x08,0x6E,0x14,0x24,0x62,0x21,0x01,0x6C,0x00,0x20};	//共阳数码表
-
+//const u8 D_CODE2[]={0x08,0x6E,0x14,0x24,0x62,0x21,0x01,0x6C,0x00,0x20};	//共阳数码表
+const u8 D_CODE2[]={0x40,0x79,0x24,0x30,0x19,0x92,0x02,0x78,0x00,0x10};	//共阳数码表  
 
 static u16 m_display_num = 0;
+
+static u8 m_digital_flash = 0;
+static u8 m_digital_on = 1;
+static u16 m_digital_flash_cnt = 0;
 
 
 void digital_init(void)
@@ -130,25 +134,66 @@ void digital_display_proc(void)
 	u8 ge = display_num%10;
 	u8 shi = display_num/10;
     
-    DIGITAL_SET_PIN_D0(0);
-    DIGITAL_SET_PIN_D1(0);
-    
-	switch(pos)
+
+	if(m_digital_flash)
 	{
-		case DGT_POS_D0:
+		if(m_digital_on == 0)  
 		{
-            DIGITAL_SET_PIN_D0(1);          
-		    digital_show_one_num(ge);
-		    pos = DGT_POS_D1;
+			if(m_digital_flash_cnt++ >= 200/10)//200ms
+			{
+				m_digital_on = 1;
+				m_digital_flash_cnt = 0;
+			}			
 		}
-        break;
-        case DGT_POS_D1:
-        {            
-            DIGITAL_SET_PIN_D1(1);
-            digital_show_one_num(shi);
-            pos = DGT_POS_D0;             
-        }
-        break;            
+		else if(m_digital_on == 1)  
+		{
+			if(m_digital_flash_cnt++ >= 200/10)//200ms
+			{
+				m_digital_on = 0;
+				m_digital_flash_cnt = 0;
+			}
+		}		
+	}
+
+	if(m_digital_on == 0)
+	{
+		GPIO_WriteLow(GPIOB,GPIO_PIN_6);
+		GPIO_WriteLow(GPIOB,GPIO_PIN_7);
+		return ;
+	}
+   
+    if (flag_smg==1)
+    {
+		GPIO_WriteLow(GPIOB,GPIO_PIN_6);
+		GPIO_WriteLow(GPIOB,GPIO_PIN_7);
+	}
+    else
+	{
+		switch(pos)
+		{		
+			case DGT_POS_D0:
+			{
+				//DIGITAL_SET_PIN_D0(0);
+				GPIO_WriteLow(GPIOB,GPIO_PIN_6);
+				// DIGITAL_SET_PIN_D1(1);
+
+				digital_show_one_num(ge);
+				GPIO_WriteHigh(GPIOB,GPIO_PIN_7);
+				pos = DGT_POS_D1;
+			}
+	        break;
+	        case DGT_POS_D1:
+	        {    
+				//DIGITAL_SET_PIN_D1(0);	
+				GPIO_WriteLow(GPIOB,GPIO_PIN_7);
+				//DIGITAL_SET_PIN_D0(1);  
+
+				digital_show_one_num(shi);
+				GPIO_WriteHigh(GPIOB,GPIO_PIN_6);
+				pos = DGT_POS_D0;             
+	        }
+	        break;            
+		}      
 	}
     
 }
@@ -166,5 +211,14 @@ int digital_set_num(u16 num)
 
 
 
-
+void digital_en_flash(u8 enable)
+{
+	if(!enable)
+	{
+		m_digital_on = 1;
+	}
+	m_digital_flash = enable;
+	m_digital_flash_cnt = 0;
+	
+}
 

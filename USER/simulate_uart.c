@@ -1,7 +1,7 @@
 #include "stm8s.h"
 #include <stdarg.h>
 #include <string.h>
-
+#include "simulate_uart.h"
 #include "delay.h"
 #include "ringbuf.h"
 
@@ -41,18 +41,16 @@ void simulate_uart_rxtx_proc(void);
 int simulate_uart_send(u8* pdata ,u8 len);
 void simulate_uart_send_byte(u8 bsend);
 u8   simulate_uart_read_byte(void);
-
 void sm_printf(uint8_t *Data,...);
 
+
+extern   u32 recv_time ;
 
 /*-----------------
 TX - PC7
 RX - PC6
 ------------------*/
-#define GPIO_TX         GPIOD
-#define GPIO_TX_PIN     GPIO_PIN_5
-#define GPIO_RX         GPIOD
-#define GPIO_RX_PIN     GPIO_PIN_6
+
 
 
 #define SM_SET_TX_OUT()     GPIO_Init(GPIO_TX,GPIO_TX_PIN,GPIO_MODE_OUT_PP_HIGH_FAST )
@@ -62,6 +60,16 @@ RX - PC6
 #define SM_UART_STOP()   
 #define SM_UART_READ_BIT()   GPIO_ReadInputPin(GPIO_RX,GPIO_RX_PIN)
 
+/*------------------
+sample bit:采一位翻转一次
+------------------*/
+#define GPIO_SAMP_BIT       GPIOB
+#define GPIO_SAMP_BIT_PIN   GPIO_PIN_4
+
+#define SM_SET_SAMP_BIT_OUT() GPIO_Init(GPIO_SAMP_BIT,GPIO_SAMP_BIT_PIN,GPIO_MODE_OUT_PP_HIGH_FAST )
+#define SM_SET_SAMP_NOR()     GPIO_WriteReverse(GPIO_SAMP_BIT,GPIO_SAMP_BIT_PIN)
+
+#define _PRESCALER_ TIM6_PRESCALER_128
 
 ringbuf_t sm_tx_ringbuf ;
 ringbuf_t sm_rx_ringbuf ;
@@ -69,17 +77,19 @@ ringbuf_t sm_rx_ringbuf ;
 u8 sm_tx_buffer[120];
 u8 sm_rx_buffer[240];
 
+u8 sm_period = 0;
+
 int simulate_uart_init(int bps)
 {
-#define _PRESCALER_ TIM6_PRESCALER_128
-
 	u16 Prescaler = 1 << _PRESCALER_;
 
-	u8  timebase = (u8)(Prescaler/16) ; //ms
+	u8  timebase = (u8)(Prescaler/16) ; //us
 
 	//t = 1000/1200 = 0.83 ms
 	u16 period = 1000000L/(bps*timebase);	//
 
+	sm_period = period; 
+ 
 	memset(sm_tx_buffer,0,sizeof(sm_tx_buffer));
 	memset(sm_rx_buffer,0,sizeof(sm_rx_buffer));
 	memset(&sm_uart_ctrl,0,sizeof(sm_uart_ctrl));
@@ -87,7 +97,7 @@ int simulate_uart_init(int bps)
 	if(rb_create(&sm_tx_ringbuf, sm_tx_buffer, sizeof(sm_tx_buffer))<0)
 	{
 		return -1;
-	}	
+	}	 
 
 	if(rb_create(&sm_rx_ringbuf, sm_rx_buffer, sizeof(sm_rx_buffer))<0)
 	{
@@ -96,6 +106,7 @@ int simulate_uart_init(int bps)
 
 	SM_SET_RX_IN(); 
 	SM_SET_TX_OUT(); 
+	SM_SET_SAMP_BIT_OUT();
 
 	/* Time base configuration */
 	TIM6_TimeBaseInit(_PRESCALER_, period - 1);   // 
@@ -121,6 +132,10 @@ int simulate_uart_start_rx(void)
 	sm_uart_ctrl.rx_end = 0;	
 	sm_uart_ctrl.startbit = 0;
 	sm_uart_ctrl.rxtx_mode = SM_UART_RX_MODE;
+
+	TIM6_Cmd(DISABLE);
+	sm_uart_en_rx_irq(1);	
+	
 	rim();
 }
 
@@ -130,6 +145,7 @@ int simulate_uart_start_tx(void)
 	sm_uart_ctrl.tx_end = 0;	
 	sm_uart_ctrl.startbit = 0;
 	sm_uart_ctrl.rxtx_mode = SM_UART_TX_MODE;
+	TIM6_Cmd(ENABLE);
 	rim();
 }
 
@@ -153,6 +169,8 @@ void simulate_uart_rxtx_proc(void)
 						sm_uart_ctrl.startbit = 1;
 						sm_uart_ctrl.rx_data = 0;
 						cnt = 0;
+
+						sm_uart_en_rx_irq(0);
 					}
 					else
 					{
@@ -161,11 +179,19 @@ void simulate_uart_rxtx_proc(void)
 					break;
 				}
 
-				cnt ++;
+				if(cnt < 9)
+				{
+					cnt ++;
+				}
+				
 				if(cnt <= 8)
 				{
+					SM_SET_SAMP_NOR();
+					
 					if(SM_UART_READ_BIT())
 					{
+						//no_receive_flag=1;
+						//recv_time=get_time_tick ();
 						sm_uart_ctrl.rx_data |= 0x80;
 					}
 
@@ -175,15 +201,19 @@ void simulate_uart_rxtx_proc(void)
 					}
 				}
 				else
-				{
-					cnt = 0;
+				{					
 					if(SM_UART_READ_BIT())
 					{
+						//no_receive_flag=1;
 						sm_uart_ctrl.rx_end = 1;
 						sm_uart_ctrl.startbit = 0;
-						
+						//recv_time=get_time_tick ();
 						rb_write(&sm_rx_ringbuf,&sm_uart_ctrl.rx_data,1);
 						rb_updatewr(&sm_rx_ringbuf,1);
+						cnt = 0;
+						sm_timer_enable(0);
+						sm_uart_en_rx_irq(1);
+						
 					}
 				}
 			}
@@ -232,6 +262,8 @@ void simulate_uart_rxtx_proc(void)
 		default:
 			break;
 	}
+
+	TIM6_TimeBaseInit(_PRESCALER_, sm_period -1);   // 
 }
 
 
@@ -279,17 +311,17 @@ void sm_uart_test(void)
 	
 	while(1)
 	{
-		/*simulate_uart_start_rx();		
+		simulate_uart_start_rx();		
 		while(sm_uart_ctrl.rx_end == 0);
 		data= simulate_uart_read_byte();
 
 		simulate_uart_start_tx();
 		simulate_uart_send_byte(data);
-		while(sm_uart_ctrl.tx_end == 0);*/
+		while(sm_uart_ctrl.tx_end == 0);
 
-		sm_printf("sm_printf\n");
+		//sm_printf("sm_printf\n");
 		
-		delay_ms(1000);  
+		//delay_ms(1000);  
 	}
 }
 
@@ -382,7 +414,41 @@ void sm_printf(uint8_t *Data,...)
 
 }
 
+void sm_uart_en_rx_irq(int enable)
+{	
+	if(enable)
+	{
+		GPIO_Init(GPIO_RX,GPIO_RX_PIN,GPIO_MODE_IN_PU_IT ); 
+		
+		EXTI_SetExtIntSensitivity(EXTI_PORT_GPIORX,EXTI_SENSITIVITY_FALL_ONLY);
+	}
+	else
+	{
+		GPIO_Init(GPIO_RX,GPIO_RX_PIN,GPIO_MODE_IN_PU_NO_IT ); 
+	}
+}
 
 
+void sm_reset_timer_period(u8 period)
+{
 
+	TIM6_Cmd(DISABLE);
+	
+	TIM6_SetCounter(0);
 
+	TIM6_TimeBaseInit(_PRESCALER_, period);   // 
+
+	TIM6_Cmd(ENABLE);
+}
+
+void sm_timer_enable(int enable)
+{
+	if(enable)
+	{
+		TIM6_Cmd(ENABLE);
+	}
+	else
+	{
+		TIM6_Cmd(DISABLE);
+	}
+}

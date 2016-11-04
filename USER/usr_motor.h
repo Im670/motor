@@ -22,7 +22,7 @@ typedef enum
 typedef struct 
 {
 	u8 cur_speed;
-	u8 dst_speed;
+	u8 dst_speed; 
 	u16 cur_ccr;
 }motor_t;
 
@@ -47,10 +47,12 @@ int motor_set_cur_ccr(MOTOR_CHN_E chn ,u16 ccr);
 u16 motor_get_cur_ccr(MOTOR_CHN_E chn);
 int  motor_set_speed(MOTOR_CHN_E chn ,u8 speed);
 u8  motor_get_speed(MOTOR_CHN_E chn );
+int motor_set_dst_speed(MOTOR_CHN_E chn ,u8 speed);
+u8 motor_get_dst_speed(MOTOR_CHN_E chn);
 void motor_self_check(void);
 int  motor_control_proc(void);
 void motor_ccr_proc(void);
-void motor_ccr_proc_chn5_6(void);
+void motor_ccr_proc_chn1_2(void);
 u16  motor_get_adc_average(MOTOR_CHN_E chn);
 int proc_motor(u16 adc_value);
 int get_m_state(void);

@@ -27,6 +27,7 @@ typedef struct
 	u8 data[MOTOR_CHN_NUM];
 	u8 para;   //²ÎÊý 
 	u8 chksum;
+	//u8 chksum2;
 }motor_ctrl_cmd_t;
 
 
