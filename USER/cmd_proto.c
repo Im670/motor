@@ -167,15 +167,7 @@ int proto_read_data(u8 *pdata, u8 len)
 		debug = 3;
  
  return -1;
-	}
-	/*
-	chksum2 = get_chksum((u8*)pdata,sizeof(motor_ctrl_cmd_t) - 1);
-	
-	if(pdata[sizeof(motor_ctrl_cmd_t) - 1] != chksum2 )	
-	{
-		debug = 4;
-		return -1;
-	}*/
+	}	
 	
 	return len;
 }
@@ -195,9 +187,17 @@ int proto_proc_data(motor_ctrl_cmd_t *pm_ctrl)
 		return 0;
 	}
 	if(pm_ctrl->para==0)
+	{
 		flag_smg=1;
+
+		motor_power_enable(0);
+	}
 	else
+	{
 		flag_smg=0;
+		motor_power_enable(1);
+	}
+	
 	for( i = 0 ; i < MOTOR_CHN_NUM; i++)
 	{
 		speed = pm_ctrl->data[i] * pm_ctrl->para / 100;

@@ -47,6 +47,8 @@ int sort_buff(u16 * pbuff,u16 len);
 
 #define TEST_CHN (MOTOR_CHN1)
 
+#define CUT_OFF_VALUE (600)
+
 
 //#define _TEST_NORMAL_ADD_SPEED_     //测试2秒一次自动增速
 
@@ -54,10 +56,10 @@ int sort_buff(u16 * pbuff,u16 len);
 void moto_check(void);
 int led_on=0,led_play=0;
 motor_ctrl_cmd_t for_led_flash;
-u8 stall_flag[6];
-bool pause_flag;
-u16 last_adc_average[6];
-u16 now_adc_average[6];
+u8 stall_flag[MOTOR_CHN_NUM];
+bool pause_flag = 0;
+u16 last_adc_average[MOTOR_CHN_NUM]= {0};
+u16 now_adc_average[MOTOR_CHN_NUM] = {0};
 void stall_out (u8 v);
 u16 DEC_FUN(u16 D1 ,u16 D2);
 extern u8 no_receive_flag;
@@ -65,7 +67,6 @@ extern u8 flag_smg;
 void weaken_fun(u16 *volue1,u16 *value2,u8 i);
 
 
- u32 recv_time = 0;
 
 
 
@@ -93,14 +94,9 @@ main()
     digital_init();
 	GPIO_Init(GPIOE, GPIO_PIN_5, GPIO_MODE_OUT_PP_HIGH_FAST);
 	GPIO_WriteHigh(GPIOE, GPIO_PIN_5);		
-#if 0
-	for(i = MOTOR_CHN1; i< MOTOR_CHN_NUM;i++)
-	{
-		motor_set_speed(i, 10);
-	}
-#endif	
+	
 	digital_set_num(0);
-	//digital_en_flash(1);
+	//digital_en_flash(1);	
 
 	delay_ms(100);  //
 
@@ -111,22 +107,6 @@ main()
 		sim();
 		cur_time = get_time_tick();
 		rim();
-		/*if(no_receive_flag==1)
-			{
-				recv_time = get_time_tick();
-				no_receive_flag=0;
-			}*/
-	#if 0
-		if(recv_time >0 &&(cur_time != recv_time) && (cur_time >= recv_time +850) ) // 500mS 没收到数据速度设为 0
-		{
-			for(i=0;i < MOTOR_CHN_NUM;i++)
-			{
-				motor_set_speed((MOTOR_CHN_E)i,0);				
-			}
-			digital_set_num(0);
-			continue;
-		}	
-	#endif
 		
 		if(is_proto_sending())
 		{
@@ -141,11 +121,8 @@ main()
 			len = proto_read_data((u8*)&motor_ctrl,sizeof(motor_ctrl));
 	
 			if( len > 0 )
-			{
-				
-				proto_proc_data(&motor_ctrl);		
-
-				recv_time = cur_time;			
+			{				
+				proto_proc_data(&motor_ctrl);
 				
 				for_led_flash = motor_ctrl;
 				
@@ -202,50 +179,68 @@ int sort_buff(u16 * pbuff,u16 len)
 void moto_check(void)
 {
 	u8 i = 0;
-	u8 adc_check_ch[6];
 	u16 adc_average = 0;
-	//u16 a=1,b=2;
+	
 	u8 cur_speed = 0;
 	u8 nom_speed=0;
-	//u16 see_adc[6];
-	for(i = MOTOR_CHN1; i< MOTOR_CHN_NUM;i++)
+	
+	for(i = 0; i< MOTOR_CHN_NUM;i++)
 	{
 		last_adc_average[i] = motor_get_adc_average((MOTOR_CHN_E)i);
-		//last_adc_average[i]=2;
-		weaken_fun(&last_adc_average[i], &now_adc_average[i],i);//
-		adc_average=now_adc_average[i];
-		nom_speed=motor_get_dst_speed((MOTOR_CHN_E)i);
-		cur_speed = motor_get_speed((MOTOR_CHN_E)i);
-	if(cur_speed<=45)
+		
+		weaken_fun(&last_adc_average[i], &now_adc_average[i],i);
+		
+		adc_average = now_adc_average[i];
+#if 0
+		if(adc_average >= CUT_OFF_VALUE)
 		{
-		if (adc_average > (3+(4*cur_speed)))
-			{
-				cur_speed ++;
-			}
-		else if (adc_average<=(3+(3*cur_speed)))
-			 {cur_speed--;}
+			motor_power_enable(0);
+			digital_set_num(0);
+			digital_en_flash(1);
+			while(1);			
 		}
-	if((cur_speed>45)&&(cur_speed<65))
+#endif		
+		nom_speed = motor_get_dst_speed((MOTOR_CHN_E)i);
+		cur_speed = motor_get_speed((MOTOR_CHN_E)i);
+		
+		if(cur_speed <= 45)
 		{
-		if (adc_average > (6+(4*cur_speed)))
+			if (adc_average > (3+(4*cur_speed)))
 			{
 				cur_speed ++;
 			}
-		else if (adc_average<=(6+(3*cur_speed)))
-			 {cur_speed--;}
+			else if (adc_average<=(3+(3*cur_speed)))
+			{
+				cur_speed--;
+			}
+		}
+		
+		if((cur_speed>45)&&(cur_speed<65))
+		{
+			if (adc_average > (6+(4*cur_speed)))
+			{
+				cur_speed ++;
+			}
+			else if (adc_average<=(6+(3*cur_speed)))
+			{
+				cur_speed--;
+			}
 		} 
-	if(cur_speed>=65)
+		
+		if(cur_speed>=65)
 		{
-		if (adc_average > (6+(5*cur_speed)))
+			if (adc_average > (6+(5*cur_speed)))
 			{
 				cur_speed ++;
 			}
-		else if (adc_average<=(6+(4*cur_speed)))
-			 {cur_speed--;}
+			else if (adc_average<=(6+(4*cur_speed)))
+			{
+				cur_speed--;
+			}
 		}
 
 	
-		 if((for_led_flash.data[i])>0)
+		if((for_led_flash.data[i])>0)
 		{
 			if(adc_average>300||stall_flag[i]==1)
 			{
@@ -259,45 +254,58 @@ void moto_check(void)
 			}
 		}
 		else
-		 {
+		{
 			led_on=led_on&(~(1<<i));
 			led_play=led_play&(~(1<<i));
-		 }
+		}
+		
 		if(flag_smg==1)
 		{
 			led_on=led_on&(~(1<<i));
 			led_play=led_play&(~(1<<i));
 		}
-	if(adc_average>500&&cur_speed>=99)
-	{
-		stall_flag[i]=2;
-	}
-	else if ((adc_average<=500)&&pause_flag==0)
-	{
-		stall_flag[i]=0;
-	}
-	if  (nom_speed<1) 
-		cur_speed=0;
-	else 
-		if ((cur_speed < nom_speed)||cur_speed>100)
+		
+		if(adc_average>500&&cur_speed>=99)
+		{
+			stall_flag[i]=2;
+		}
+		else if ((adc_average<=500)&&pause_flag==0)
+		{
+			stall_flag[i]=0;
+		}
+		if (nom_speed<1) 
+		{
+			cur_speed=0;
+		}
+		else if ((cur_speed < nom_speed)||cur_speed>100)
 		{
 			cur_speed = nom_speed;
 		}
-	if(nom_speed>97)
+		
+		if(nom_speed>97)
+		{
 			cur_speed=99;
-	stall_out(i);
-	if(stall_flag[i]==1)
-		 motor_set_speed((MOTOR_CHN_E)i,0);
-	else if(stall_flag[i]==0)
-		motor_set_speed((MOTOR_CHN_E)i, cur_speed);
-	else if((stall_flag[i]==2))
-		motor_set_speed((MOTOR_CHN_E)i, 100);
+		}
+		
+		stall_out(i);
+		if(stall_flag[i]==1)
+		{
+			motor_set_speed((MOTOR_CHN_E)i,0);
+		}
+		else if(stall_flag[i]==0)
+		{
+			motor_set_speed((MOTOR_CHN_E)i, cur_speed);
+		}
+		else if((stall_flag[i]==2))
+		{
+			motor_set_speed((MOTOR_CHN_E)i, 100);
+		}
 	} 
 
 }
 void stall_out (u8 v)// 
 {
-	static u16  time_out[6];
+	static u16  time_out[MOTOR_CHN_NUM];
 	if(stall_flag[v]==2)
 	{ 
 		time_out[v]++;
@@ -337,11 +345,16 @@ u16 DEC_FUN(u16 D1 ,u16 D2)
 }
 void weaken_fun(u16* volue1,u16* value2,u8 i)
 {
-	static u8 add[6];
+	static u8 add[MOTOR_CHN_NUM];
 	if(DEC_FUN(*volue1, *value2)>4)
+	{
 		add[i]++;
+	}
 	else
+	{
 		add[i]=0;
+	}
+	
 	if(add[i]>20)
 	{
 		add[i]=0;

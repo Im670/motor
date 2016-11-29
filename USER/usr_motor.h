@@ -6,15 +6,20 @@
 #define MAX_CCR    (1000-1)      //PWM 最大CCR  对应100% 占空比
 #define SAMPLE_TIME   (1000)       // ms ADC采样时间
 
+#define _6_CHN_
+
 
 typedef enum
 {
+#ifdef _6_CHN_
 	MOTOR_CHN1, // =0
 	MOTOR_CHN2, // =1
 	MOTOR_CHN3,
+#endif
 	MOTOR_CHN4,
 	MOTOR_CHN5,
 	MOTOR_CHN6,
+
 	MOTOR_CHN_NUM
 }MOTOR_CHN_E;
 
@@ -49,16 +54,18 @@ int  motor_set_speed(MOTOR_CHN_E chn ,u8 speed);
 u8  motor_get_speed(MOTOR_CHN_E chn );
 int motor_set_dst_speed(MOTOR_CHN_E chn ,u8 speed);
 u8 motor_get_dst_speed(MOTOR_CHN_E chn);
-void motor_self_check(void);
 int  motor_control_proc(void);
 void motor_ccr_proc(void);
 void motor_ccr_proc_chn1_2(void);
 u16  motor_get_adc_average(MOTOR_CHN_E chn);
 int proc_motor(u16 adc_value);
-int get_m_state(void);
-void set_m_state(M_STEAE state);
+//int get_m_state(void);
+//void set_m_state(M_STEAE state);
 
-int motor_is_stucked(void);
+//int motor_is_stucked(void);
+void motor_power_init(void);
+void motor_power_enable(u8 enable);
+
 
 #endif
 

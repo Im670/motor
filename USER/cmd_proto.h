@@ -24,7 +24,7 @@ typedef struct
 typedef struct
 {
 	u8 head;   //0xAA 固定值
-	u8 data[MOTOR_CHN_NUM];
+	u8 data[6];
 	u8 para;   //参数 
 	u8 chksum;
 	//u8 chksum2;

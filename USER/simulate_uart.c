@@ -44,7 +44,6 @@ u8   simulate_uart_read_byte(void);
 void sm_printf(uint8_t *Data,...);
 
 
-extern   u32 recv_time ;
 
 /*-----------------
 TX - PC7
@@ -189,9 +188,7 @@ void simulate_uart_rxtx_proc(void)
 					SM_SET_SAMP_NOR();
 					
 					if(SM_UART_READ_BIT())
-					{
-						//no_receive_flag=1;
-						//recv_time=get_time_tick ();
+					{						
 						sm_uart_ctrl.rx_data |= 0x80;
 					}
 
@@ -207,7 +204,6 @@ void simulate_uart_rxtx_proc(void)
 						//no_receive_flag=1;
 						sm_uart_ctrl.rx_end = 1;
 						sm_uart_ctrl.startbit = 0;
-						//recv_time=get_time_tick ();
 						rb_write(&sm_rx_ringbuf,&sm_uart_ctrl.rx_data,1);
 						rb_updatewr(&sm_rx_ringbuf,1);
 						cnt = 0;

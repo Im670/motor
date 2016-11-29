@@ -11,6 +11,9 @@
 
 
 
+#define GPIO_MT_POWER       GPIOE
+#define GPIO_MT_POWER_PIN   GPIO_PIN_5
+
 #define KEEP_ZERO_NUM (10)     //连续差值为0次数
 #define KEEP_INC_NUM  (20)     //连续差值>=0次数
 #define KEEP_DEC_NUM  (10)     //连续差值<=0次数
@@ -178,14 +181,19 @@ void motor_ccr_proc(void)
 	{
 		return;
 	}
-		
+
+#ifdef _6_CHN_		
 	for(chn = MOTOR_CHN3 ; chn < MOTOR_CHN_NUM; chn++)
+#else
+	for(chn = MOTOR_CHN4 ; chn < MOTOR_CHN_NUM; chn++)
+#endif
 	{
 		u8 speed = m_motor_config.motor[chn].cur_speed;
 		u16 ccr  = get_ccr_by_speed(speed);
 		
 		switch(chn)
 		{
+
 			case MOTOR_CHN6:// 6
 				{
 					TIM1_SetCompare1(ccr);
@@ -204,12 +212,15 @@ void motor_ccr_proc(void)
 					//TIM1_SetCompare3(m_motor_config.motor[chn].cur_ccr);
 				}
 				break;
+#ifdef _6_CHN_
 			case MOTOR_CHN3:/*3*/
 				{
 					TIM1_SetCompare4(ccr);
 					//TIM1_SetCompare4(m_motor_config.motor[chn].cur_ccr);
 				}
-				break;			
+				break;
+#endif
+
 		}
 	}
 }
@@ -222,8 +233,8 @@ void motor_ccr_proc_chn1_2(void)
 	{
 		return;
 	}
-		
-	for(chn = MOTOR_CHN1 ; chn < MOTOR_CHN3;chn++)
+#ifdef _6_CHN_
+	for(chn = 0 ; chn < MOTOR_CHN3;chn++)
 	{
 		u8 speed = m_motor_config.motor[chn].cur_speed;
 		u16 ccr  = get_ccr_by_speed(speed);
@@ -244,6 +255,7 @@ void motor_ccr_proc_chn1_2(void)
 				break;
 		}
 	}
+#endif
 }
 
 
@@ -255,38 +267,27 @@ int motor_control_proc()
 
 extern int sort_buff(u16 * pbuff,u16 len);
 
-void motor_self_check(void)
-{
-	u16 i = 0;
-	u32 pre = get_time_tick();
-	u16 adc = 0;
-	for(i = 1;i <= SPEED_NUM;i++)
-	{
-		motor_set_speed(MOTOR_CHN1,i);
-		delay_ms(100);
-		adc = motor_get_adc_average(MOTOR_CHN1);
-		DEBUG_PRINTF("(%d,%d)\n",i,adc);		
-	}
-	DEBUG_PRINTF("cost time %d ms\n",(u16)(get_time_tick()-pre));
-}
-
 
 ADC1_Channel_TypeDef motor_chn_to_adc_Chn(MOTOR_CHN_E chn)
 {
 	switch(chn)
 	{
+
 		case MOTOR_CHN6:/*6*/
 			return ADC1_CHANNEL_0;
 		case MOTOR_CHN5:/*5*/
 			return ADC1_CHANNEL_1;
 		case MOTOR_CHN4:/*4*/
 			return ADC1_CHANNEL_2;
+#ifdef _6_CHN_
 		case MOTOR_CHN3:/*3*/
 			return ADC1_CHANNEL_3;
 		case MOTOR_CHN2:/*2*/
 			return ADC1_CHANNEL_6;
 		case MOTOR_CHN1:/*1*/
 			return ADC1_CHANNEL_5;
+#endif
+
 		default:
 			return ADC1_CHANNEL_0;
 	}
@@ -313,4 +314,25 @@ u16  motor_get_adc_average(MOTOR_CHN_E chn)
 	
 	return adc_average;
 }
+
+
+
+void motor_power_init(void)
+{
+	GPIO_Init(GPIO_MT_POWER, GPIO_MT_POWER_PIN, GPIO_MODE_OUT_PP_HIGH_FAST);
+	GPIO_WriteHigh(GPIO_MT_POWER, GPIO_MT_POWER_PIN);	
+}
+
+void motor_power_enable(u8 enable)
+{
+	if(enable)
+	{
+		GPIO_WriteHigh(GPIO_MT_POWER, GPIO_MT_POWER_PIN);		
+	}
+	else
+	{
+		GPIO_WriteLow(GPIO_MT_POWER, GPIO_MT_POWER_PIN);	
+	}
+}
+
 
